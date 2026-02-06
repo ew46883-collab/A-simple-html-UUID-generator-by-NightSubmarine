@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUID Professional Tool</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --download-color: #e67e22;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; display: flex; justify-content: center; transition: direction 0.3s; }
+        .container { background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .lang-selector { display: flex; align-items: center; gap: 5px; background: #fff; border: 1px solid #ddd; padding: 5px 10px; border-radius: 20px; }
+        select { border: none; outline: none; background: transparent; cursor: pointer; font-size: 14px; }
+
+        h1 { text-align: center; color: #333; margin: 10px 0 25px 0; font-size: 22px; }
+
+        .config-panel { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #eee; }
+        .config-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; color: #666; display: block; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-item { display: flex; align-items: center; font-size: 14px; cursor: pointer; gap: 8px; }
+        .option-item.disabled { color: #ccc; cursor: not-allowed; }
+
+        .control-row { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+        input[type="number"] { width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 6px; }
+        
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-gen { background: var(--primary-color); }
+        .btn-download { background: var(--download-color); }
+        
+        textarea { width: 100%; height: 180px; margin-top: 20px; padding: 10px; box-sizing: border-box; border-radius: 6px; border: 1px solid #ddd; font-family: 'Cascadia Code', 'Consolas', monospace; display: none; white-space: pre; }
+        .copy-btn { width: 100%; background: #2ecc71; margin-top: 10px; display: none; }
+
+        [dir="rtl"] .options-grid { text-align: right; }
+    </style>
+</head>
+<body dir="ltr">
+
+<div class="container">
+    <div class="header">
+        <div class="lang-selector">
+            <span>🌐</span>
+            <select id="langSelect" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="fr">Français</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="ru">Русский</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="ar">العربية</option>
+            </select>
+        </div>
+    </div>
+
+    <h1 id="t-title">UUID Generator</h1>
+
+    <div class="config-panel">
+        <span class="config-title" id="t-baseTitle">Basic Options:</span>
+        <div class="options-grid">
+            <label class="option-item"><input type="radio" name="baseOpt" value="0" checked onchange="toggleExtraOpts()"> <span id="t-opt0">Standard</span></label>
+            <label class="option-item"><input type="radio" name="baseOpt" value="1" onchange="toggleExtraOpts()"> <span id="t-opt1">1. Remove Hyphens</span></label>
+            <label class="option-item"><input type="radio" name="baseOpt" value="2" onchange="toggleExtraOpts()"> <span id="t-opt2">2. Uppercase</span></label>
+            <label class="option-item"><input type="radio" name="baseOpt" value="3" onchange="toggleExtraOpts()"> <span id="t-opt3">3. No Hyphens + Uppercase</span></label>
+        </div>
+        
+        <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+        
+        <span class="config-title" id="t-extraTitle">ISO 8601 Add-ons:</span>
+        <div class="options-grid" id="extraPanel">
+            <label class="option-item"><input type="radio" name="timeOpt" value="0" checked> <span id="t-opt-none">None</span></label>
+            <label class="option-item"><input type="radio" name="timeOpt" value="4"> <span id="t-opt4">4. Suffix - ISO</span></label>
+            <label class="option-item"><input type="radio" name="timeOpt" value="5"> <span id="t-opt5">5. Suffix - ISO+TZ</span></label>
+            <label class="option-item"><input type="radio" name="timeOpt" value="6"> <span id="t-opt6">6. Prefix ISO -</span></label>
+            <label class="option-item"><input type="radio" name="timeOpt" value="7"> <span id="t-opt7">7. Prefix ISO+TZ -</span></label>
+        </div>
+    </div>
+
+    <div class="control-row">
+        <span id="t-count">Count:</span>
+        <input type="number" id="countInput" value="10" min="1" max="9999" oninput="updateUI()">
+        <button id="mainBtn" class="btn btn-gen" onclick="process()">Generate UUID</button>
+    </div>
+
+    <textarea id="output" readonly></textarea>
+    <button id="copyBtn" class="btn copy-btn" onclick="copyResult()">Copy All</button>
+</div>
+
+<script>
+    const i18n = {
+        "en": { title: "UUID Generator", base: "Basic Options", extra: "ISO 8601 Add-ons", opt0: "Standard", opt1: "Remove Hyphens", opt2: "Uppercase", opt3: "No Hyphens + Uppercase", optNone: "None", opt4: "Suffix - ISO8601", opt5: "Suffix - ISO + TZ", opt6: "Prefix ISO8601 -", opt7: "Prefix ISO + TZ -", count: "Count:", btnGen: "Generate UUID", btnDl: "Generate & Download .txt", copy: "Copy All", copied: "Copied!" },
+        "zh-CN": { title: "UUID 随机生成器", base: "基本转换", extra: "ISO 8601 附加项", opt0: "标准格式", opt1: "1. 去掉横线", opt2: "2. 全部大写", opt3: "3. 去掉横线+大写", optNone: "不追加", opt4: "4. 后缀-ISO8601", opt5: "5. 后缀-ISO+时区", opt6: "6. 前缀 ISO8601-", opt7: "7. 前缀 ISO+时区-", count: "数量:", btnGen: "生成 UUID", btnDl: "生成并下载 .txt 文件", copy: "一键复制", copied: "已复制！" },
+        "zh-TW": { title: "UUID 隨機生成器", base: "基本轉換", extra: "ISO 8601 附加項", opt0: "標準格式", opt1: "1. 去掉橫線", opt2: "2. 全部大寫", opt3: "3. 去掉橫線+大寫", optNone: "不追加", opt4: "4. 後綴-ISO8601", opt5: "5. 後綴-ISO+時區", opt6: "6. 前綴 ISO8601-", opt7: "7. 前綴 ISO+時區-", count: "數量:", btnGen: "生成 UUID", btnDl: "生成並下載 .txt 檔", copy: "一鍵複製", copied: "已複製！" },
+        "fr": { title: "Générateur de UUID", base: "Options de base", extra: "Additions ISO 8601", opt0: "Standard", opt1: "Supprimer les tirets", opt2: "Majuscules", opt3: "Sans tiret + Maj", optNone: "Aucun", opt4: "Suffixe - ISO8601", opt5: "Suffixe - ISO + Zone", opt6: "Préfixe ISO8601 -", opt7: "Préfixe ISO + Zone -", count: "Nombre:", btnGen: "Générer", btnDl: "Générer et Télécharger", copy: "Copier tout", copied: "Copié!" },
+        "ja": { title: "UUID 生成器", base: "基本オプション", extra: "ISO 8601 追加オプション", opt0: "標準", opt1: "ハイフンなし", opt2: "大文字", opt3: "ハイフンなし + 大文字", optNone: "なし", opt4: "後ろにISO8601", opt5: "後ろにISO+タイムゾーン", opt6: "前にISO8601", opt7: "前にISO+タイムゾーン", count: "個数:", btnGen: "生成する", btnDl: "生成してダウンロード", copy: "すべてコピー", copied: "コピーしました！" },
+        "ko": { title: "UUID 생성기", base: "기본 옵션", extra: "ISO 8601 추가 옵션", opt0: "표준", opt1: "하이픈 제거", opt2: "대문자", opt3: "하이픈 제거 + 대문자", optNone: "없음", opt4: "접미사 - ISO8601", opt5: "접미사 - ISO + 시간대", opt6: "접두사 ISO8601 -", opt7: "접두사 ISO + 시간대 -", count: "개수:", btnGen: "생성하기", btnDl: "생성 및 다운로드", copy: "모두 복사", copied: "복사됨!" },
+        "ru": { title: "Генератор UUID", base: "Базовые опции", extra: "Опции ISO 8601", opt0: "Стандарт", opt1: "Без дефисов", opt2: "Заглавные", opt3: "Без дефисов + Заглавные", optNone: "Нет", opt4: "Суффикс - ISO8601", opt5: "Суффикс - ISO + Пояс", opt6: "Префикс ISO8601 -", opt7: "Префикс ISO + Пояс -", count: "Кол-во:", btnGen: "Создать", btnDl: "Создать и Скачать", copy: "Копировать", copied: "Скопировано!" },
+        "es": { title: "Generador de UUID", base: "Opciones básicas", extra: "Adiciones ISO 8601", opt0: "Estándar", opt1: "Quitar guiones", opt2: "Mayúsculas", opt3: "Sin guiones + Mayús", optNone: "Ninguno", opt4: "Sufijo - ISO8601", opt5: "Sufijo - ISO + Zona", opt6: "Prefijo ISO8601 -", opt7: "Prefijo ISO + Zona -", count: "Cantidad:", btnGen: "Generar", btnDl: "Generar y Descargar", copy: "Copiar todo", copied: "¡Copiado!" },
+        "de": { title: "UUID Generator", base: "Basisoptionen", extra: "ISO 8601 Erweiterungen", opt0: "Standard", opt1: "Bindestriche entfernen", opt2: "Großbuchstaben", opt3: "Ohne Bindestrich + Groß", optNone: "Keine", opt4: "Suffix - ISO8601", opt5: "Suffix - ISO + Zone", opt6: "Präfix ISO8601 -", opt7: "Präfix ISO + Zone -", count: "Anzahl:", btnGen: "Generieren", btnDl: "Generieren & Download", copy: "Alles kopieren", copied: "Kopiert!" },
+        "it": { title: "Generatore UUID", base: "Opzioni di base", extra: "Aggiunte ISO 8601", opt0: "Standard", opt1: "Rimuovi trattini", opt2: "Maiuscolo", opt3: "Senza trattini + Maiusc", optNone: "Nessuno", opt4: "Suffisso - ISO8601", opt5: "Suffisso - ISO + Fuso", opt6: "Prefisso ISO8601 -", opt7: "Prefisso ISO + Fuso -", count: "Quantità:", btnGen: "Genera", btnDl: "Genera e Scarica", copy: "Copia tutto", copied: "Copiato!" },
+        "ar": { title: "مولد UUID", base: "الخيارات الأساسية", extra: "إضافات ISO 8601", opt0: "قياسي", opt1: "إزالة الشرطات", opt2: "أحرف كبيرة", opt3: "بدون شرطات + كبيرة", optNone: "لا يوجد", opt4: "لاحقة - ISO8601", opt5: "لاحقة - ISO + المنطقة", opt6: "بادئة ISO8601 -", opt7: "بادئة ISO + المنطقة -", count: "العدد:", btnGen: "توليد", btnDl: "توليد وتنزيل ملف", copy: "نسخ الكل", copied: "تم النسخ!" }
+    };
+
+    function changeLanguage() {
+        const lang = document.getElementById('langSelect').value;
+        const data = i18n[lang];
+        document.getElementById('t-title').innerText = data.title;
+        document.getElementById('t-baseTitle').innerText = data.base;
+        document.getElementById('t-extraTitle').innerText = data.extra;
+        document.getElementById('t-opt0').innerText = data.opt0;
+        document.getElementById('t-opt1').innerText = data.opt1;
+        document.getElementById('t-opt2').innerText = data.opt2;
+        document.getElementById('t-opt3').innerText = data.opt3;
+        document.getElementById('t-opt-none').innerText = data.optNone;
+        document.getElementById('t-opt4').innerText = data.opt4;
+        document.getElementById('t-opt5').innerText = data.opt5;
+        document.getElementById('t-opt6').innerText = data.opt6;
+        document.getElementById('t-opt7').innerText = data.opt7;
+        document.getElementById('t-count').innerText = data.count;
+        document.getElementById('copyBtn').innerText = data.copy;
+        document.body.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+        updateUI();
+    }
+
+    function toggleExtraOpts() {
+        updateUI();
+    }
+
+    function updateUI() {
+        const lang = document.getElementById('langSelect').value;
+        const count = parseInt(document.getElementById('countInput').value) || 0;
+        const btn = document.getElementById('mainBtn');
+        btn.innerText = (count > 100) ? i18n[lang].btnDl : i18n[lang].btnGen;
+        btn.className = (count > 100) ? "btn btn-download" : "btn btn-gen";
+    }
+
+    function getISO8601Timestamp(withTZ) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const localISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        if (!withTZ) return localISO;
+        const offset = -now.getTimezoneOffset();
+        const sign = offset >= 0 ? "+" : "-";
+        const formattedOffset = `${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
+        return `${localISO}${formattedOffset}`;
+    }
+
+    function generateSingle() {
+        let uuid = crypto.randomUUID();
+        const baseOpt = document.querySelector('input[name="baseOpt"]:checked').value;
+        const timeOpt = document.querySelector('input[name="timeOpt"]:checked').value;
+
+        // 处理 UUID 基本格式
+        if (baseOpt === "1" || baseOpt === "3") uuid = uuid.replace(/-/g, '');
+        if (baseOpt === "2" || baseOpt === "3") uuid = uuid.toUpperCase();
+
+        // 拼接逻辑 (不再使用 cleanISO，始终保持标准 ISO 符号)
+        if (timeOpt !== "0") {
+            const ts = getISO8601Timestamp(timeOpt === "5" || timeOpt === "7");
+            const sep = "-"; // 始终使用横线连接以确保可读性
+            uuid = (timeOpt === "4" || timeOpt === "5") ? `${uuid}${sep}${ts}` : `${ts}${sep}${uuid}`;
+        }
+        return uuid;
+    }
+
+    function process() {
+        const countInput = document.getElementById('countInput');
+        let count = Math.min(Math.max(parseInt(countInput.value) || 1, 1), 9999);
+        countInput.value = count;
+
+        const uuids = Array.from({length: count}, generateSingle).join('\n');
+
+        if (count <= 100) {
+            const out = document.getElementById('output');
+            out.value = uuids;
+            out.style.display = 'block';
+            document.getElementById('copyBtn').style.display = 'block';
+        } else {
+            const blob = new Blob([uuids], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `uuids_${count}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    async function copyResult() {
+        const lang = document.getElementById('langSelect').value;
+        await navigator.clipboard.writeText(document.getElementById('output').value);
+        const btn = document.getElementById('copyBtn');
+        const originalText = i18n[lang].copy;
+        btn.innerText = i18n[lang].copied;
+        setTimeout(() => btn.innerText = originalText, 1500);
+    }
+
+    changeLanguage();
+</script>
+</body>
+</html>
